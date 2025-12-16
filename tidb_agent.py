@@ -508,7 +508,7 @@ def _build_model() -> BedrockModel:
         or "us.amazon.nova-pro-v1:0"
     )
     region = os.getenv("BEDROCK_REGION") or os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION") or "us-west-2"
-    return BedrockModel(model_id=model_id, region_name=region)
+    return BedrockModel(model_id=model_id, region_name=region, streaming=False)
 
 
 def build_agent() -> Agent:
