@@ -522,6 +522,7 @@ def build_agent() -> Agent:
         "or by creating a dedicated branch manually. "
         "For read-only queries you may skip backups. "
         "Use run_sql_on_branch when you need to modify or query a specific branch created during the session. "
+        "Send SQL as single statements (multi-statement batches are disabled); apply DDL/DML step by step. "
         "When creating child branches from an existing branch, use create_branch_from_display_name (preferred) "
         "or create_branch with parent_id resolved from the chosen parent; do not branch from the default/main "
         "when the user has selected a specific parent."
