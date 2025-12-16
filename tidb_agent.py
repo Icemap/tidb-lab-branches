@@ -251,6 +251,31 @@ def _delete_admin_credential(branch_name: str, cluster_id: str) -> None:
         _write_admin_credentials(cache)
 
 
+def _resolve_branch_display_name(manager: BranchManager, branch_id: str) -> Optional[str]:
+    """Best-effort resolve a branch display name for a given branch id."""
+    try:
+        info = manager.get_branch(branch_id)
+        name = info.get("displayName")
+        if name:
+            return name
+    except Exception:
+        pass
+    try:
+        for br in manager.list_branches():
+            if (br.get("branchId") or br.get("id")) == branch_id:
+                return br.get("displayName")
+    except Exception:
+        pass
+    return None
+
+
+def _delete_admin_credential_for_branch_id(manager: BranchManager, branch_id: str) -> None:
+    """Remove cached admin creds for the given branch id if possible."""
+    name = _resolve_branch_display_name(manager, branch_id)
+    if name:
+        _delete_admin_credential(name, manager._cluster())
+
+
 def _get_branch_manager() -> BranchManager:
     """Lazily create the branch manager to avoid requiring credentials at import time."""
     global _branch_manager
@@ -424,15 +449,12 @@ def create_branch_from_display_name(display_name: str, parent_display_name: str)
 def delete_branch(branch_id: str) -> str:
     """Delete a branch by id."""
     manager = _get_branch_manager()
-    deleted = manager.delete_branch(branch_id)
-    # Clean up cached admin credentials if we can resolve display name
     try:
-        info = manager.get_branch(branch_id)
-        display_name = info.get("displayName")
-        if display_name:
-            _delete_admin_credential(display_name, manager._cluster())
+        # Clean cached admin creds before deletion (after delete, branch lookup may 404).
+        _delete_admin_credential_for_branch_id(manager, branch_id)
     except Exception:
         pass
+    deleted = manager.delete_branch(branch_id)
     return json.dumps(deleted, ensure_ascii=False)
 
 
@@ -440,6 +462,11 @@ def delete_branch(branch_id: str) -> str:
 def reset_branch(branch_id: str) -> str:
     """Reset a branch to its parent state."""
     manager = _get_branch_manager()
+    try:
+        # Reset can invalidate branch admin credentials.
+        _delete_admin_credential_for_branch_id(manager, branch_id)
+    except Exception:
+        pass
     reset = manager.reset_branch(branch_id)
     _wait_for_branch_active(manager, branch_id)
     return json.dumps(reset, ensure_ascii=False)

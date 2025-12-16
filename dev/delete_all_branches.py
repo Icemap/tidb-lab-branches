@@ -13,7 +13,7 @@ from typing import Any, Dict, List
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from tidb_agent import branch_manager  # noqa: E402
+from tidb_agent import branch_manager, delete_branch  # noqa: E402
 
 
 def main() -> None:
@@ -27,7 +27,7 @@ def main() -> None:
         branch_id = br.get("branchId") or br.get("id")
         name = br.get("displayName") or branch_id
         try:
-            resp = branch_manager.delete_branch(branch_id)
+            resp = json.loads(delete_branch(branch_id))
             results.append({"branchId": branch_id, "displayName": name, "status": "deleted", "response": resp})
         except Exception as exc:  # pragma: no cover - network/API behavior
             results.append({"branchId": branch_id, "displayName": name, "status": "error", "error": str(exc)})
